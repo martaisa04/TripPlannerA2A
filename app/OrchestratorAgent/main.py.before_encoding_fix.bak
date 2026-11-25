@@ -1,0 +1,112 @@
+import os
+import boto3
+import httpx
+from a2a.client import ClientConfig
+from mcp_proxy_for_aws.sigv4_helper import SigV4HTTPXAuth
+from strands import Agent, tool
+from strands.agent.a2a_agent import A2AAgent
+from bedrock_agentcore.runtime import BedrockAgentCoreApp
+from bedrock_agentcore.memory.integrations.strands.config import (
+    AgentCoreMemoryConfig,
+    RetrievalConfig,
+)
+from bedrock_agentcore.memory.integrations.strands.session_manager import (
+    AgentCoreMemorySessionManager,
+)
+
+app = BedrockAgentCoreApp()
+
+FLIGHTS_URL = os.environ["FLIGHTS_AGENT_URL"]
+WEATHER_URL = os.environ["WEATHER_AGENT_URL"]
+REGION = os.environ.get("AWS_REGION", "us-east-2")
+MEMORY_ID = os.environ.get("TRIP_MEMORY_ID") or None
+
+
+def create_remote_agent(endpoint: str) -> A2AAgent:
+    """Crea un cliente A2A autenticado con AWS SigV4."""
+    credentials = boto3.Session().get_credentials()
+
+    auth = SigV4HTTPXAuth(
+        credentials=credentials,
+        service="bedrock-agentcore",
+        region=REGION,
+    )
+
+    http_client = httpx.AsyncClient(auth=auth, timeout=300)
+    client_config = ClientConfig(httpx_client=http_client)
+
+    return A2AAgent(endpoint=endpoint, client_config=client_config)
+
+
+@tool
+def ask_flights(request: str) -> str:
+    """Delega en el Flights Agent la búsqueda de vuelos."""
+    remote = create_remote_agent(FLIGHTS_URL)
+    return str(remote(request).message)
+
+
+@tool
+def ask_weather(request: str) -> str:
+    """Delega en el Weather Agent. Incluye siempre ciudad y fecha en la solicitud."""
+    remote = create_remote_agent(WEATHER_URL)
+    return str(remote(request).message)
+
+
+SYSTEM_PROMPT = """
+Eres un planificador de viajes. Utiliza ask_flights para consultar vuelos
+y ask_weather para consultar el clima.
+
+REGLAS OBLIGATORIAS:
+1. Utiliza las herramientas correspondientes para responder las consultas.
+2. Cuando se soliciten vuelos y clima, consulta ambas herramientas.
+3. Presenta ?nicamente datos respaldados por las respuestas recibidas.
+4. No inventes vuelos, aerol?neas, horarios, precios, temperaturas,
+   probabilidades de lluvia ni otros datos.
+5. No presentes datos simulados como si fueran reales.
+6. Si una herramienta indica que sus datos son simulados, comun?calo.
+7. Si falta informaci?n o una herramienta falla, ind?calo claramente.
+8. No afirmes que existe un pron?stico para una fecha si la herramienta
+   no proporciona informaci?n para ese d?a.
+9. Puedes utilizar las preferencias recordadas para ordenar opciones,
+   pero no para modificar los resultados de las herramientas.
+10. Responde en espa?ol y organiza la informaci?n por secciones.
+11. El a?o actual es 2026.
+"""
+
+def build_agent(session_id: str, actor_id: str) -> Agent:
+    kwargs = {
+        "name": "Trip Planner Orchestrator",
+        "system_prompt": SYSTEM_PROMPT,
+        "tools": [ask_flights, ask_weather],
+        "callback_handler": None,
+    }
+    if MEMORY_ID:
+        config = AgentCoreMemoryConfig(
+            memory_id=MEMORY_ID,
+            session_id=session_id,
+            actor_id=actor_id,
+            retrieval_config={
+                "/preferences/{actorId}/": RetrievalConfig(top_k=5, relevance_score=0.3),
+                "/facts/{actorId}/": RetrievalConfig(top_k=5, relevance_score=0.3),
+            },
+        )
+        kwargs["session_manager"] = AgentCoreMemorySessionManager(
+            config, region_name=REGION
+        )
+    return Agent(**kwargs)
+
+
+@app.entrypoint
+async def invoke(payload, context):
+    prompt = payload.get("prompt", "")
+    if not isinstance(prompt, str):
+        raise ValueError("prompt debe ser un string")
+    session_id = getattr(context, "session_id", None) or "default-session"
+    actor_id = payload.get("actor_id") or "default-user"
+    agent = build_agent(session_id, actor_id)
+    async for event in agent.stream_async(prompt):
+        yield event
+
+
+if __name__ == "__main__":
+    app.run()

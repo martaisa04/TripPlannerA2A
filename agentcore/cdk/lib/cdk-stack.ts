@@ -8,8 +8,13 @@ import {
   type CustomJWTAuthorizerConfig,
   type HarnessDeploymentConfig,
 } from '@aws/agentcore-cdk';
-import { CfnOutput, Stack, type StackProps } from 'aws-cdk-lib';
+import { CfnOutput, Duration, RemovalPolicy, Stack, type StackProps } from 'aws-cdk-lib';
+import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as iam from 'aws-cdk-lib/aws-iam';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as apigwv2 from 'aws-cdk-lib/aws-apigatewayv2';
+import * as apigwv2_integrations from 'aws-cdk-lib/aws-apigatewayv2-integrations';
+import * as path from 'path';
 import { Construct } from 'constructs';
 
 /**
@@ -281,6 +286,149 @@ export class AgentCoreStack extends Stack {
         });
       }
     }
+
+    // =========================================================================
+    // RESERVATIONS INFRASTRUCTURE
+    // DynamoDB table + 4 Lambda CRUD handlers + HTTP API Gateway
+    // =========================================================================
+
+    // --- DynamoDB Table ---
+    const reservationsTable = new dynamodb.Table(this, 'ReservationsTable', {
+      tableName: `${spec.name}-TripReservations`,
+      partitionKey: { name: 'reservationId', type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+      removalPolicy: RemovalPolicy.RETAIN, // Never destroy reservation data on stack update
+      pointInTimeRecoverySpecification: { pointInTimeRecoveryEnabled: true },
+    });
+
+    // GSI: query reservations by userId
+    reservationsTable.addGlobalSecondaryIndex({
+      indexName: 'userId-index',
+      partitionKey: { name: 'userId', type: dynamodb.AttributeType.STRING },
+      sortKey: { name: 'createdAt', type: dynamodb.AttributeType.STRING },
+      projectionType: dynamodb.ProjectionType.ALL,
+    });
+
+    // --- Shared Lambda config ---
+    const lambdaEnv = {
+      RESERVATIONS_TABLE: reservationsTable.tableName,
+    };
+
+    const lambdaDir = path.resolve(__dirname, '..', '..', '..', 'lambdas', 'reservations');
+
+    const lambdaDefaults = {
+      runtime: lambda.Runtime.PYTHON_3_12,
+      timeout: Duration.seconds(30),
+      memorySize: 256,
+      environment: lambdaEnv,
+    };
+
+    // --- Lambda functions ---
+    const createFn = new lambda.Function(this, 'ReservationCreateFn', {
+      ...lambdaDefaults,
+      functionName: `${spec.name}-reservation-create`,
+      code: lambda.Code.fromAsset(lambdaDir),
+      handler: 'create.handler',
+      description: 'Creates a new flight reservation in DynamoDB',
+    });
+
+    const getFn = new lambda.Function(this, 'ReservationGetFn', {
+      ...lambdaDefaults,
+      functionName: `${spec.name}-reservation-get`,
+      code: lambda.Code.fromAsset(lambdaDir),
+      handler: 'get.handler',
+      description: 'Gets a single reservation by ID',
+    });
+
+    const listFn = new lambda.Function(this, 'ReservationListFn', {
+      ...lambdaDefaults,
+      functionName: `${spec.name}-reservation-list`,
+      code: lambda.Code.fromAsset(lambdaDir),
+      handler: 'list_reservations.handler',
+      description: 'Lists all reservations for a user via userId-index GSI',
+    });
+
+    const cancelFn = new lambda.Function(this, 'ReservationCancelFn', {
+      ...lambdaDefaults,
+      functionName: `${spec.name}-reservation-cancel`,
+      code: lambda.Code.fromAsset(lambdaDir),
+      handler: 'cancel.handler',
+      description: 'Cancels an active reservation',
+    });
+
+    // --- Grant DynamoDB permissions ---
+    reservationsTable.grantReadWriteData(createFn);
+    reservationsTable.grantReadData(getFn);
+    reservationsTable.grantReadData(listFn);
+    reservationsTable.grantReadWriteData(cancelFn);
+
+    // --- HTTP API Gateway ---
+    const httpApi = new apigwv2.HttpApi(this, 'ReservationsApi', {
+      apiName: `${spec.name}-reservations-api`,
+      description: 'TripPlannerA2A Reservations CRUD API',
+      corsPreflight: {
+        allowHeaders: ['Content-Type', 'Authorization'],
+        allowMethods: [
+          apigwv2.CorsHttpMethod.GET,
+          apigwv2.CorsHttpMethod.POST,
+          apigwv2.CorsHttpMethod.PATCH,
+          apigwv2.CorsHttpMethod.OPTIONS,
+        ],
+        allowOrigins: ['*'],
+      },
+    });
+
+    // POST /reservations
+    httpApi.addRoutes({
+      path: '/reservations',
+      methods: [apigwv2.HttpMethod.POST],
+      integration: new apigwv2_integrations.HttpLambdaIntegration('CreateIntegration', createFn),
+    });
+
+    // GET /reservations  (list by userId query param)
+    httpApi.addRoutes({
+      path: '/reservations',
+      methods: [apigwv2.HttpMethod.GET],
+      integration: new apigwv2_integrations.HttpLambdaIntegration('ListIntegration', listFn),
+    });
+
+    // GET /reservations/{reservationId}
+    httpApi.addRoutes({
+      path: '/reservations/{reservationId}',
+      methods: [apigwv2.HttpMethod.GET],
+      integration: new apigwv2_integrations.HttpLambdaIntegration('GetIntegration', getFn),
+    });
+
+    // PATCH /reservations/{reservationId}/cancel
+    httpApi.addRoutes({
+      path: '/reservations/{reservationId}/cancel',
+      methods: [apigwv2.HttpMethod.PATCH],
+      integration: new apigwv2_integrations.HttpLambdaIntegration('CancelIntegration', cancelFn),
+    });
+
+    // --- Grant ReservationsAgent runtime role access to DynamoDB ---
+    // The ReservationsAgent runtime role is managed by AgentCoreApplication.
+    // We grant it after the application is created by looking it up by name.
+    const reservationsEnv = this.application.environments.get('ReservationsAgent');
+    if (reservationsEnv) {
+      reservationsTable.grantReadWriteData(reservationsEnv.runtime.role);
+      // Also give the agent the API Gateway URL via env var
+      reservationsEnv.runtime.addEnvironmentVariable('RESERVATIONS_API_URL', httpApi.apiEndpoint);
+      reservationsEnv.runtime.addEnvironmentVariable('RESERVATIONS_TABLE', reservationsTable.tableName);
+    }
+
+    // --- Outputs ---
+    new CfnOutput(this, 'ReservationsTableName', {
+      description: 'DynamoDB table for trip reservations',
+      value: reservationsTable.tableName,
+      exportName: `${spec.name}-ReservationsTableName`,
+    });
+
+    new CfnOutput(this, 'ReservationsApiUrl', {
+      description: 'HTTP API Gateway endpoint for reservations CRUD',
+      value: httpApi.apiEndpoint,
+      exportName: `${spec.name}-ReservationsApiUrl`,
+    });
 
     // Stack-level output
     new CfnOutput(this, 'StackNameOutput', {

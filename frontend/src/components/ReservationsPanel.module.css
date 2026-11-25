@@ -1,0 +1,158 @@
+.page { display: flex; flex-direction: column; gap: 20px; }
+
+/* Header */
+.pageHeader {
+  display: flex; align-items: center; justify-content: space-between;
+}
+.pageTitle { font-size: 22px; font-weight: 800; color: var(--text); }
+.pageSub   { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+.refreshBtn {
+  display: flex; align-items: center; gap: 6px;
+  padding: 8px 16px; border-radius: var(--r);
+  border: 1.5px solid var(--border); background: var(--surface);
+  color: var(--text-secondary); font-size: 13px;
+  transition: all .15s;
+}
+.refreshBtn:hover:not(:disabled) { border-color: var(--brand-blue); color: var(--brand-blue); }
+.refreshBtn:disabled { opacity: .5; cursor: not-allowed; }
+
+/* Filters */
+.filters { display: flex; gap: 6px; }
+.filterBtn {
+  padding: 7px 18px; border-radius: 999px;
+  border: 1.5px solid var(--border); background: transparent;
+  color: var(--text-secondary); font-size: 13px; font-weight: 500;
+  transition: all .15s;
+}
+.filterBtn:hover { border-color: var(--brand-blue); color: var(--brand-blue); }
+.filterActive { background: var(--brand-blue); border-color: var(--brand-blue); color: #fff; }
+
+/* Toasts */
+.toast {
+  background: var(--success-bg); border: 1px solid var(--success);
+  color: var(--success); padding: 10px 16px; border-radius: var(--r-sm); font-size: 13px;
+}
+.error {
+  background: var(--danger-bg); border: 1px solid var(--danger);
+  color: var(--danger); padding: 10px 16px; border-radius: var(--r-sm); font-size: 13px;
+}
+
+/* Empty */
+.empty {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 12px; padding: 64px; text-align: center; color: var(--text-muted);
+}
+.emptyIcon { opacity: .3; }
+.empty h3 { font-size: 17px; font-weight: 700; color: var(--text); }
+.empty p  { font-size: 14px; }
+
+/* Grid */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 14px;
+}
+
+/* Card */
+.card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  display: flex;
+  transition: box-shadow .2s, transform .15s;
+}
+.card:hover { box-shadow: var(--shadow); transform: translateY(-2px); }
+.cardCancelled { opacity: .65; }
+
+.stripe { width: 5px; flex-shrink: 0; }
+.stripeActive    { background: var(--success); }
+.stripeCancelled { background: var(--text-muted); }
+
+.cardInner { flex: 1; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; }
+
+/* Route */
+.routeRow { display: flex; align-items: center; gap: 10px; }
+.routeCity { text-align: center; min-width: 48px; }
+.cityCode  { font-size: 22px; font-weight: 900; color: var(--text); line-height: 1; }
+
+.routeMid { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.routeLine { width: 100%; display: flex; align-items: center; gap: 2px; }
+.routeDot  { width: 7px; height: 7px; border-radius: 50%; border: 2px solid var(--brand-blue); flex-shrink: 0; }
+.routeBar  { flex: 1; height: 1.5px; background: var(--border); }
+.routePlane { color: var(--brand-blue); flex-shrink: 0; }
+.airline   { font-size: 11px; color: var(--text-muted); }
+
+/* Meta */
+.meta {
+  display: flex; gap: 12px; flex-wrap: wrap;
+  font-size: 12px; color: var(--text-secondary);
+}
+.meta span { display: flex; align-items: center; gap: 4px; }
+
+/* Footer */
+.footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.footerLeft { display: flex; align-items: center; gap: 8px; }
+.footerRight { display: flex; align-items: center; gap: 8px; }
+
+.badge {
+  font-size: 11px; font-weight: 700; padding: 3px 10px;
+  border-radius: 999px;
+}
+.badgeActive    { background: var(--success-bg); color: var(--success); }
+.badgeCancelled { background: var(--surface-3); color: var(--text-muted); }
+
+.price { font-size: 14px; font-weight: 700; color: var(--brand-blue); }
+.resId { font-size: 11px; font-family: monospace; color: var(--text-muted); background: var(--surface-2); padding: 2px 6px; border-radius: 4px; }
+
+.externalLink {
+  font-size: 12px; color: var(--brand-blue); font-weight: 600;
+}
+.cancelBtn {
+  display: flex; align-items: center; gap: 4px;
+  padding: 5px 10px; border-radius: var(--r-sm);
+  border: 1.5px solid var(--danger); background: transparent;
+  color: var(--danger); font-size: 11px; font-weight: 600;
+  transition: all .15s;
+}
+.cancelBtn:hover { background: var(--danger-bg); }
+
+/* Dialog */
+.overlay {
+  position: fixed; inset: 0; z-index: 300;
+  background: rgba(0,0,0,.45);
+  display: flex; align-items: center; justify-content: center;
+  backdrop-filter: blur(4px);
+}
+.dialog {
+  background: var(--surface); border: 1.5px solid var(--border);
+  border-radius: var(--r-xl); padding: 32px 36px;
+  max-width: 420px; width: 90%;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  box-shadow: var(--shadow-lg);
+}
+.dialog h3 { font-size: 18px; font-weight: 800; }
+.dialog p  { font-size: 14px; color: var(--text-secondary); text-align: center; }
+.dialog strong { color: var(--text); font-family: monospace; }
+.dialogRoute {
+  display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+  background: var(--surface-3); padding: 10px 14px; border-radius: var(--r-sm);
+  font-size: 13px; font-weight: 600; color: var(--text);
+}
+.dialogWarn { font-size: 12px !important; color: var(--warning) !important; }
+.dialogActions { display: flex; gap: 10px; width: 100%; margin-top: 4px; }
+.btnBack {
+  flex: 1; padding: 10px; border-radius: var(--r);
+  border: 1.5px solid var(--border); background: transparent;
+  color: var(--text-secondary); font-size: 14px;
+  transition: all .15s;
+}
+.btnBack:hover:not(:disabled) { background: var(--surface-2); }
+.btnCancel {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px; border-radius: var(--r); border: none;
+  background: var(--danger); color: #fff;
+  font-size: 14px; font-weight: 600; transition: opacity .15s;
+}
+.btnCancel:hover:not(:disabled) { opacity: .85; }
+.btnBack:disabled, .btnCancel:disabled { opacity: .5; cursor: not-allowed; }

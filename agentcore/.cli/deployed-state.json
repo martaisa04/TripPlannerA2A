@@ -1,3 +1,49 @@
 {
-  "targets": {}
+  "targets": {
+    "default": {
+      "resources": {
+        "runtimes": {
+          "OrchestratorAgent": {
+            "runtimeId": "TripPlannerA2A_OrchestratorAgent-DZAPzV4CU4",
+            "runtimeArn": "arn:aws:bedrock-agentcore:us-east-2:700002441872:runtime/TripPlannerA2A_OrchestratorAgent-DZAPzV4CU4",
+            "roleArn": "arn:aws:iam::700002441872:role/AgentCore-TripPlannerA2A--ApplicationAgentOrchestra-7Mx4NO6rEOPf"
+          },
+          "WeatherAgent": {
+            "runtimeId": "TripPlannerA2A_WeatherAgent-iEXKh9AfuB",
+            "runtimeArn": "arn:aws:bedrock-agentcore:us-east-2:700002441872:runtime/TripPlannerA2A_WeatherAgent-iEXKh9AfuB",
+            "roleArn": "arn:aws:iam::700002441872:role/AgentCore-TripPlannerA2A--ApplicationAgentWeatherAg-mt9ODen6jGBK"
+          },
+          "FlightsAgent": {
+            "runtimeId": "TripPlannerA2A_FlightsAgent-r74L5a3eom",
+            "runtimeArn": "arn:aws:bedrock-agentcore:us-east-2:700002441872:runtime/TripPlannerA2A_FlightsAgent-r74L5a3eom",
+            "roleArn": "arn:aws:iam::700002441872:role/AgentCore-TripPlannerA2A--ApplicationAgentFlightsAg-mrNm7monfsz1"
+          },
+          "ReservationsAgent": {
+            "runtimeId": "TripPlannerA2A_ReservationsAgent-B4LW9YANsi",
+            "runtimeArn": "arn:aws:bedrock-agentcore:us-east-2:700002441872:runtime/TripPlannerA2A_ReservationsAgent-B4LW9YANsi",
+            "roleArn": "arn:aws:iam::700002441872:role/AgentCore-TripPlannerA2A--ApplicationAgentReservati-onW16OPrUB0U"
+          }
+        },
+        "memories": {
+          "TripPlannerMemory": {
+            "memoryId": "TripPlannerA2A_TripPlannerMemory-H6Sp3R8Duc",
+            "memoryArn": "arn:aws:bedrock-agentcore:us-east-2:700002441872:memory/TripPlannerA2A_TripPlannerMemory-H6Sp3R8Duc"
+          }
+        },
+        "harnesses": {
+          "MyHarness": {
+            "harnessId": "TripPlannerA2A_MyHarness-JrPXP2T8Q6",
+            "harnessArn": "arn:aws:bedrock-agentcore:us-east-2:700002441872:harness/TripPlannerA2A_MyHarness-JrPXP2T8Q6",
+            "roleArn": "arn:aws:iam::700002441872:role/TripPlannerA2A_MyHarness",
+            "status": "READY",
+            "harnessVersion": 1,
+            "agentRuntimeArn": "arn:aws:bedrock-agentcore:us-east-2:700002441872:runtime/harness_TripPlannerA2A_MyHarness-7KwBd1BUwy",
+            "provisioner": "cloudformation"
+          }
+        },
+        "stackName": "AgentCore-TripPlannerA2A-default",
+        "deployHash": "44c25dad1c238cf8"
+      }
+    }
+  }
 }

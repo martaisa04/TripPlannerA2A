@@ -1,0 +1,133 @@
+.sidebar {
+  width: 280px;
+  flex-shrink: 0;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow-y: auto;
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 18px 16px 14px;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  z-index: 2;
+}
+.headerIcon { font-size: 22px; }
+.headerTitle { font-size: 14px; font-weight: 700; color: var(--text); }
+.headerSub   { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+
+/* List */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 12px;
+  flex: 1;
+}
+
+/* Card */
+.card {
+  background: var(--surface-2);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: box-shadow .2s, border-color .2s, transform .15s;
+}
+.card:hover {
+  box-shadow: var(--shadow);
+  transform: translateY(-2px);
+}
+.cardActive {
+  border-color: var(--brand-blue);
+  box-shadow: 0 0 0 3px rgba(26,86,219,.1);
+}
+
+/* Avatar */
+.cardTop {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.avatarWrap {
+  position: relative;
+  width: 44px; height: 44px;
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.avatar { font-size: 22px; }
+.onlineDot {
+  position: absolute;
+  bottom: 2px; right: 2px;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: #22c55e;
+  border: 2px solid var(--surface);
+  animation: pulse-dot 2s infinite;
+}
+
+/* Text */
+.info { min-width: 0; }
+.name { font-size: 13px; font-weight: 700; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.role { font-size: 11px; color: var(--text-muted); margin-top: 1px; }
+.desc { font-size: 12px; color: var(--text-secondary); line-height: 1.5; }
+
+/* Caps */
+.caps { display: flex; flex-wrap: wrap; gap: 4px; }
+.cap {
+  font-size: 10px; font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 999px;
+  border: 1px solid;
+  letter-spacing: .2px;
+}
+
+/* Button */
+.chatBtn {
+  width: 100%;
+  padding: 9px;
+  border: none;
+  border-radius: var(--r-sm);
+  color: #fff;
+  font-size: 13px; font-weight: 600;
+  letter-spacing: .2px;
+  transition: opacity .15s, transform .1s;
+}
+.chatBtn:hover { opacity: .9; transform: translateY(-1px); }
+
+/* Footer */
+.footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 12px 16px;
+  font-size: 11px;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border);
+}
+.footerDot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+  flex-shrink: 0;
+  animation: pulse-dot 2s infinite;
+}
+
+@media (max-width: 1024px) {
+  .sidebar { width: 240px; }
+}
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+}

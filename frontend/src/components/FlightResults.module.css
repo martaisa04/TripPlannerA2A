@@ -1,0 +1,137 @@
+.wrap { display: flex; flex-direction: column; gap: 16px; }
+
+.header {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  padding-bottom: 4px;
+}
+.title { font-size: 20px; font-weight: 800; color: var(--text); }
+.sub   { font-size: 13px; color: var(--text-muted); margin-top: 2px; }
+
+/* Loading */
+.loading {
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  padding: 48px; color: var(--text-muted); font-size: 14px;
+}
+
+/* Raw reply */
+.rawReply {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 20px 24px;
+  font-size: 14px; line-height: 1.6; color: var(--text);
+}
+.rawReply :global(p) { margin-bottom: 8px; }
+.rawReply :global(p:last-child) { margin-bottom: 0; }
+.rawReply :global(table) { border-collapse: collapse; width: 100%; }
+.rawReply :global(th), .rawReply :global(td) { border: 1px solid var(--border); padding: 7px 12px; font-size: 13px; }
+.rawReply :global(th) { background: var(--surface-3); font-weight: 600; }
+.rawReply :global(a) { color: var(--brand-blue); }
+.rawReply :global(strong) { color: var(--brand-blue-dark); }
+.rawReply :global(ul), .rawReply :global(ol) { padding-left: 20px; margin: 6px 0; }
+
+/* No results */
+.noResults {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 48px 32px;
+  text-align: center;
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+}
+.noIcon { font-size: 48px; }
+.noResults h3 { font-size: 20px; font-weight: 700; }
+.noResults p { font-size: 14px; color: var(--text-secondary); max-width: 420px; }
+
+/* List */
+.list { display: flex; flex-direction: column; gap: 12px; }
+
+/* Card */
+.card {
+  background: var(--surface);
+  border: 1.5px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 20px 24px;
+  display: grid;
+  grid-template-columns: 160px 1fr 180px;
+  gap: 20px;
+  align-items: center;
+  transition: box-shadow .2s, transform .15s;
+}
+.card:hover { box-shadow: var(--shadow); transform: translateY(-2px); }
+
+/* Left */
+.cardLeft {}
+.airline { display: flex; align-items: center; gap: 10px; }
+.airlineIcon {
+  width: 40px; height: 40px;
+  background: var(--surface-3);
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+}
+.airlineName { font-size: 14px; font-weight: 700; }
+.flightNum   { font-size: 11px; color: var(--text-muted); }
+
+/* Mid — route */
+.cardMid {}
+.route {
+  display: flex; align-items: center; gap: 10px;
+  margin-bottom: 8px;
+}
+.routePoint { text-align: center; min-width: 48px; }
+.time    { font-size: 20px; font-weight: 800; line-height: 1; }
+.airport { font-size: 11px; color: var(--text-muted); font-weight: 600; margin-top: 2px; }
+.routeLine {
+  flex: 1; display: flex; align-items: center; gap: 2px;
+}
+.routeDot {
+  width: 8px; height: 8px; border-radius: 50%;
+  border: 2px solid var(--brand-blue); flex-shrink: 0;
+}
+.routeBar { flex: 1; height: 1.5px; background: var(--border); }
+.routePlane { color: var(--brand-blue); flex-shrink: 0; }
+.meta {
+  display: flex; gap: 14px; font-size: 12px; color: var(--text-muted);
+}
+.meta span { display: flex; align-items: center; gap: 4px; }
+
+/* Right */
+.cardRight { text-align: right; }
+.price    { font-size: 24px; font-weight: 800; color: var(--brand-blue); }
+.priceSub { font-size: 11px; color: var(--text-muted); margin-bottom: 10px; }
+.priceNA  { font-size: 14px; color: var(--text-muted); font-style: italic; margin-bottom: 10px; }
+.actions  { display: flex; flex-direction: column; gap: 6px; }
+
+.externalBtn {
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  padding: 7px 14px;
+  border: 1.5px solid var(--brand-blue);
+  border-radius: var(--r-sm);
+  color: var(--brand-blue);
+  font-size: 12px; font-weight: 600;
+  transition: all .15s;
+}
+.externalBtn:hover { background: var(--surface-3); }
+
+.bookBtn {
+  display: flex; align-items: center; justify-content: center; gap: 5px;
+  padding: 8px 14px;
+  background: var(--brand-orange);
+  color: #fff; border: none;
+  border-radius: var(--r-sm);
+  font-size: 13px; font-weight: 700;
+  transition: background .15s;
+}
+.bookBtn:hover:not(:disabled) { background: var(--brand-orange-dark); }
+.bookBtnBooked { background: var(--success) !important; }
+.bookBtn:disabled { opacity: .7; cursor: default; }
+
+@media (max-width: 700px) {
+  .card {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+  .cardRight { text-align: left; }
+  .actions { flex-direction: row; }
+}
