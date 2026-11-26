@@ -1,0 +1,46 @@
+# ── Secretos y configuración local ──────────────────────────────
+.env
+.env.local
+.env.*.local
+*.secret
+secrets/
+
+# ── Archivos temporales de trabajo ──────────────────────────────
+resultado.txt
+body.json
+bedrock-test.json
+vars.ps1
+
+# ── Políticas IAM generadas localmente ──────────────────────────
+invoke-policy.json
+orchestrator-policy.json
+
+# ── Entornos virtuales Python ────────────────────────────────────
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# ── Node / frontend ──────────────────────────────────────────────
+node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
+
+# ── CDK ──────────────────────────────────────────────────────────
+cdk.out/
+agentcore/cdk/dist/
+agentcore/cdk/node_modules/
+agentcore/cdk/cdk.out/
+
+# ── IDE ──────────────────────────────────────────────────────────
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ── OS ───────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db

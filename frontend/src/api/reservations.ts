@@ -36,3 +36,23 @@ export async function cancelReservation(reservationId: string, userId: string): 
     body: JSON.stringify({ userId }),
   });
 }
+
+export interface UpdateReservationPayload {
+  userId: string;
+  returnDate?: string;
+  passengers?: number;
+  notes?: string;
+  airline?: string;
+  flightNumber?: string;
+  bookingUrl?: string;
+}
+
+export async function updateReservation(
+  reservationId: string,
+  payload: UpdateReservationPayload,
+): Promise<{ message: string; reservation: Reservation }> {
+  return request(`/${reservationId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload),
+  });
+}

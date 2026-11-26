@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { RefreshCw, Loader2, Plane, X, AlertTriangle, CalendarCheck, MapPin, Clock } from 'lucide-react';
-import { listReservations, cancelReservation } from '../api/reservations';
+import { RefreshCw, Loader2, Plane, X, AlertTriangle, CalendarCheck, MapPin, Clock, Pencil } from 'lucide-react';
+import { listReservations, cancelReservation, updateReservation } from '../api/reservations';
+import type { UpdateReservationPayload } from '../api/reservations';
 import type { Reservation } from '../types';
 import s from './ReservationsPanel.module.css';
 
@@ -15,6 +16,8 @@ export default function ReservationsPanel() {
   const [error, setError] = useState<string | null>(null);
   const [cancelTarget, setCancelTarget] = useState<Reservation | null>(null);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [editTarget, setEditTarget] = useState<Reservation | null>(null);
+  const [isUpdating, setIsUpdating] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   const load = useCallback(async () => {
@@ -41,6 +44,20 @@ export default function ReservationsPanel() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Error al cancelar');
     } finally { setIsCancelling(false); setCancelTarget(null); }
+  }
+
+  async function handleUpdate(payload: UpdateReservationPayload) {
+    if (!editTarget) return;
+    setIsUpdating(true);
+    setError(null);
+    try {
+      const result = await updateReservation(editTarget.reservationId, { ...payload, userId: DEFAULT_USER_ID });
+      setReservations(prev => prev.map(r => r.reservationId === editTarget.reservationId ? result.reservation : r));
+      setSuccessMsg(`Reserva ${editTarget.reservationId} actualizada exitosamente.`);
+      setTimeout(() => setSuccessMsg(null), 4000);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Error al actualizar');
+    } finally { setIsUpdating(false); setEditTarget(null); }
   }
 
   const filtered = filter === 'ALL' ? reservations : reservations.filter(r => r.status === filter);
@@ -87,7 +104,7 @@ export default function ReservationsPanel() {
       ) : (
         <div className={s.grid}>
           {filtered.map(r => (
-            <ReservationCard key={r.reservationId} reservation={r} onCancel={() => setCancelTarget(r)} />
+            <ReservationCard key={r.reservationId} reservation={r} onCancel={() => setCancelTarget(r)} onEdit={() => setEditTarget(r)} />
           ))}
         </div>
       )}
@@ -119,11 +136,21 @@ export default function ReservationsPanel() {
           </div>
         </div>
       )}
+
+      {/* Edit dialog */}
+      {editTarget && (
+        <EditDialog
+          reservation={editTarget}
+          isUpdating={isUpdating}
+          onClose={() => setEditTarget(null)}
+          onSave={handleUpdate}
+        />
+      )}
     </div>
   );
 }
 
-function ReservationCard({ reservation: r, onCancel }: { reservation: Reservation; onCancel: () => void }) {
+function ReservationCard({ reservation: r, onCancel, onEdit }: { reservation: Reservation; onCancel: () => void; onEdit: () => void }) {
   return (
     <div className={`${s.card} ${r.status === 'CANCELLED' ? s.cardCancelled : ''} fade-up`}>
       {/* Status stripe */}
@@ -177,11 +204,79 @@ function ReservationCard({ reservation: r, onCancel }: { reservation: Reservatio
               </a>
             )}
             {r.status === 'ACTIVE' && (
-              <button className={s.cancelBtn} onClick={onCancel}>
-                <X size={12} /> Cancelar
-              </button>
+              <>
+                <button className={s.editBtn} onClick={onEdit}>
+                  <Pencil size={12} /> Editar
+                </button>
+                <button className={s.cancelBtn} onClick={onCancel}>
+                  <X size={12} /> Cancelar
+                </button>
+              </>
             )}
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function EditDialog({
+  reservation: r,
+  isUpdating,
+  onClose,
+  onSave,
+}: {
+  reservation: Reservation;
+  isUpdating: boolean;
+  onClose: () => void;
+  onSave: (payload: UpdateReservationPayload) => void;
+}) {
+  const [returnDate, setReturnDate] = useState(r.returnDate ?? '');
+  const [passengers, setPassengers] = useState(String(r.passengers));
+  const [airline, setAirline] = useState(r.airline);
+  const [flightNumber, setFlightNumber] = useState(r.flightNumber ?? '');
+  const [notes, setNotes] = useState(r.notes ?? '');
+
+  function handleSave() {
+    const payload: UpdateReservationPayload = { userId: '' }; // userId se inyecta en handleUpdate
+    if (returnDate !== (r.returnDate ?? ''))      payload.returnDate   = returnDate || undefined;
+    if (Number(passengers) !== r.passengers)      payload.passengers   = Number(passengers);
+    if (airline !== r.airline)                    payload.airline      = airline;
+    if (flightNumber !== (r.flightNumber ?? ''))  payload.flightNumber = flightNumber;
+    if (notes !== (r.notes ?? ''))                payload.notes        = notes;
+    onSave(payload);
+  }
+
+  return (
+    <div className={s.overlay} onClick={onClose}>
+      <div className={s.dialog} onClick={e => e.stopPropagation()}>
+        <Pencil size={28} color="var(--brand-blue)" />
+        <h3>Editar reserva</h3>
+        <p><strong>{r.reservationId}</strong> · {r.origin} → {r.destination} · {r.departureDate}</p>
+
+        <div className={s.editForm}>
+          <label className={s.editLabel}>Fecha de regreso</label>
+          <input type="date" className={s.editInput} value={returnDate} onChange={e => setReturnDate(e.target.value)} />
+
+          <label className={s.editLabel}>Pasajeros</label>
+          <input type="number" min={1} max={9} className={s.editInput} value={passengers} onChange={e => setPassengers(e.target.value)} />
+
+          <label className={s.editLabel}>Aerolínea</label>
+          <input type="text" className={s.editInput} value={airline} onChange={e => setAirline(e.target.value)} />
+
+          <label className={s.editLabel}>Número de vuelo</label>
+          <input type="text" className={s.editInput} value={flightNumber} onChange={e => setFlightNumber(e.target.value)} />
+
+          <label className={s.editLabel}>Notas</label>
+          <textarea className={s.editInput} rows={2} value={notes} onChange={e => setNotes(e.target.value)} />
+        </div>
+
+        <div className={s.dialogActions}>
+          <button className={s.btnBack} onClick={onClose} disabled={isUpdating}>Cancelar</button>
+          <button className={s.btnSave} onClick={handleSave} disabled={isUpdating}>
+            {isUpdating ? <Loader2 size={14} className="spin" /> : <Pencil size={14} />}
+            Guardar cambios
+          </button>
         </div>
       </div>
     </div>

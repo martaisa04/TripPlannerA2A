@@ -8,6 +8,7 @@ import os
 
 import boto3
 from boto3.dynamodb.conditions import Key, Attr
+from _utils import safe_dumps
 
 TABLE_NAME = os.environ["RESERVATIONS_TABLE"]
 dynamodb = boto3.resource("dynamodb")
@@ -51,7 +52,7 @@ def handler(event, _context):
         return {
             "statusCode": 200,
             "headers": HEADERS,
-            "body": json.dumps({"reservations": items, "count": len(items)}),
+            "body": safe_dumps({"reservations": items, "count": len(items)}),
         }
 
     except Exception as exc:  # pylint: disable=broad-except

@@ -183,6 +183,68 @@ def cancel_reservation(reservation_id: str, user_id: str) -> dict:
         return {"error": f"Error al cancelar la reserva: {exc}"}
 
 
+@tool
+def update_reservation(
+    reservation_id: str,
+    user_id: str,
+    return_date: str = "",
+    passengers: int = 0,
+    notes: str = "",
+    airline: str = "",
+    flight_number: str = "",
+    booking_url: str = "",
+) -> dict:
+    """
+    Actualiza campos editables de una reserva activa existente.
+
+    Conserva el mismo reservationId y solo modifica los campos proporcionados.
+    No permite cambiar: origen, destino, fecha de salida, precio, moneda ni estado.
+
+    Args:
+        reservation_id: ID de la reserva (ej: 'TRP-A1B2C3D4').
+        user_id: Identificador del usuario propietario de la reserva.
+        return_date: Nueva fecha de regreso (YYYY-MM-DD). Opcional.
+        passengers: Nuevo número de pasajeros. 0 significa sin cambio.
+        notes: Nuevas notas o comentarios. Opcional.
+        airline: Nombre de aerolínea corregido. Opcional.
+        flight_number: Número de vuelo corregido. Opcional.
+        booking_url: Nuevo enlace de reserva externo. Opcional.
+
+    Returns:
+        Diccionario con la reserva actualizada, o error si no existe o no pertenece al usuario.
+    """
+    if not RESERVATIONS_API_URL:
+        return {"error": "RESERVATIONS_API_URL no configurada"}
+
+    # Construir solo los campos que realmente cambian
+    payload: dict = {"userId": user_id}
+    if return_date:
+        payload["returnDate"] = return_date
+    if passengers > 0:
+        payload["passengers"] = passengers
+    if notes:
+        payload["notes"] = notes
+    if airline:
+        payload["airline"] = airline
+    if flight_number:
+        payload["flightNumber"] = flight_number
+    if booking_url:
+        payload["bookingUrl"] = booking_url
+
+    if len(payload) == 1:  # solo userId, nada que cambiar
+        return {"error": "Debes indicar al menos un campo para actualizar"}
+
+    try:
+        response = httpx.patch(
+            f"{RESERVATIONS_API_URL}/reservations/{reservation_id}",
+            json=payload,
+            timeout=15,
+        )
+        return response.json()
+    except Exception as exc:  # pylint: disable=broad-except
+        return {"error": f"Error al actualizar la reserva: {exc}"}
+
+
 # ---------------------------------------------------------------------------
 # System prompt
 # ---------------------------------------------------------------------------
@@ -195,6 +257,7 @@ HERRAMIENTAS DISPONIBLES:
 - get_reservation: Consulta los detalles de una reserva por su ID.
 - list_reservations: Lista todas las reservas del usuario, con filtro opcional de estado.
 - cancel_reservation: Cancela una reserva activa.
+- update_reservation: Actualiza campos editables de una reserva activa existente.
 
 REGLAS OBLIGATORIAS:
 1. Utiliza SOLO los datos devueltos por las herramientas. No inventes reservas, IDs ni estados.
@@ -206,12 +269,29 @@ REGLAS OBLIGATORIAS:
 7. Los IDs de reserva tienen el formato TRP-XXXXXXXX (ej: TRP-A1B2C3D4).
 8. El año actual es 2026.
 
+CAMPOS ACTUALIZABLES con update_reservation:
+- return_date: fecha de regreso (YYYY-MM-DD)
+- passengers: número de pasajeros
+- notes: notas o comentarios
+- airline: nombre de la aerolínea
+- flight_number: número de vuelo
+- booking_url: enlace de reserva externo
+
+CAMPOS NO MODIFICABLES: reservationId, userId, origin, destination, departureDate, price, currency, status.
+
 FLUJO DE CANCELACIÓN:
 1. Recibir solicitud de cancelación con el ID.
 2. Consultar la reserva con get_reservation para verificar existencia y estado.
 3. Mostrar los detalles al usuario y pedir confirmación explícita.
 4. Solo después de confirmación, ejecutar cancel_reservation.
 5. Informar el resultado final.
+
+FLUJO DE ACTUALIZACIÓN:
+1. Recibir solicitud de modificación con el ID y los campos a cambiar.
+2. Consultar con get_reservation para confirmar que existe y está ACTIVE.
+3. Ejecutar update_reservation con solo los campos que el usuario quiere cambiar.
+4. Confirmar el éxito únicamente si la herramienta devuelve la reserva actualizada.
+5. Mostrar los datos actualizados al usuario.
 """
 
 
@@ -227,7 +307,7 @@ def create_agent(context_id: str) -> Agent:
             "Integrado con DynamoDB via API Gateway."
         ),
         system_prompt=SYSTEM_PROMPT,
-        tools=[create_reservation, get_reservation, list_reservations, cancel_reservation],
+        tools=[create_reservation, get_reservation, list_reservations, cancel_reservation, update_reservation],
         callback_handler=None,
     )
 

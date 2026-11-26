@@ -7,6 +7,7 @@ import os
 from datetime import datetime, timezone
 
 import boto3
+from _utils import safe_dumps
 
 TABLE_NAME = os.environ["RESERVATIONS_TABLE"]
 dynamodb = boto3.resource("dynamodb")
@@ -84,7 +85,7 @@ def handler(event, _context):
         return {
             "statusCode": 200,
             "headers": HEADERS,
-            "body": json.dumps({
+            "body": safe_dumps({
                 "message": f"Reserva {reservation_id} cancelada exitosamente",
                 "reservation": item,
             }),

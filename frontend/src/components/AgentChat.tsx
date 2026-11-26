@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { X, Send, Loader2, Minimize2, Maximize2 } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { invokeOrchestrator } from '../api/orchestrator';
+import { invokeOrchestratorStream } from '../api/orchestrator';
 import type { AgentDef, ChatMessage, SearchContext } from '../types';
 import s from './AgentChat.module.css';
 
@@ -62,15 +62,50 @@ export default function AgentChat({ agent, onClose, searchContext, initialPrompt
     setInput('');
     setLoading(true);
     try {
-      const reply = await invokeOrchestrator(text, USER_ID);
-      setMessages(p => p.map(m => m.id === loadingMsg.id ? { ...m, content: reply, isLoading: false } : m));
-      // Notify parent if no results detected
-      if (detectNoResults(reply) && searchContext && onNoResults) {
+      let accumulated = '';
+      let firstChunk = true;
+
+      for await (const chunk of invokeOrchestratorStream(text, USER_ID)) {
+        accumulated += chunk;
+
+        // Al llegar el primer chunk, quitar el indicador de carga
+        if (firstChunk) {
+          firstChunk = false;
+          setMessages(p => p.map(m =>
+            m.id === loadingMsg.id
+              ? { ...m, content: accumulated, isLoading: false }
+              : m,
+          ));
+        } else {
+          // Actualizar el contenido con cada chunk adicional
+          setMessages(p => p.map(m =>
+            m.id === loadingMsg.id
+              ? { ...m, content: accumulated }
+              : m,
+          ));
+        }
+      }
+
+      // Si no llegó ningún chunk, quitar el indicador
+      if (firstChunk) {
+        setMessages(p => p.map(m =>
+          m.id === loadingMsg.id
+            ? { ...m, content: '(sin respuesta)', isLoading: false }
+            : m,
+        ));
+      }
+
+      // Detectar si no hay resultados de vuelos
+      if (detectNoResults(accumulated) && searchContext && onNoResults) {
         onNoResults(searchContext.origin, searchContext.destination, searchContext.departureDate);
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Error desconocido';
-      setMessages(p => p.map(m => m.id === loadingMsg.id ? { ...m, content: `❌ ${msg}`, isLoading: false } : m));
+      setMessages(p => p.map(m =>
+        m.id === loadingMsg.id
+          ? { ...m, content: `❌ ${msg}`, isLoading: false }
+          : m,
+      ));
     } finally {
       setLoading(false);
       textareaRef.current?.focus();

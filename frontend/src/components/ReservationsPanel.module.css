@@ -156,3 +156,44 @@
 }
 .btnCancel:hover:not(:disabled) { opacity: .85; }
 .btnBack:disabled, .btnCancel:disabled { opacity: .5; cursor: not-allowed; }
+
+/* Edit button */
+.editBtn {
+  display: flex; align-items: center; gap: 4px;
+  padding: 5px 10px; border-radius: var(--r-sm);
+  border: 1.5px solid var(--brand-blue); background: transparent;
+  color: var(--brand-blue); font-size: 11px; font-weight: 600;
+  transition: all .15s;
+}
+.editBtn:hover { background: var(--surface-3); }
+
+/* Edit form inside dialog */
+.editForm {
+  width: 100%;
+  display: flex; flex-direction: column; gap: 6px;
+  text-align: left;
+}
+.editLabel {
+  font-size: 11px; font-weight: 600; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: .4px;
+  margin-top: 4px;
+}
+.editInput {
+  width: 100%; padding: 8px 10px;
+  border: 1.5px solid var(--border); border-radius: var(--r-sm);
+  font-size: 13px; font-family: inherit; color: var(--text);
+  background: var(--surface-2);
+  transition: border-color .15s;
+  resize: vertical;
+}
+.editInput:focus { outline: none; border-color: var(--brand-blue); }
+
+/* Save button */
+.btnSave {
+  flex: 1; display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 10px; border-radius: var(--r); border: none;
+  background: var(--brand-blue); color: #fff;
+  font-size: 14px; font-weight: 600; transition: opacity .15s;
+}
+.btnSave:hover:not(:disabled) { opacity: .85; }
+.btnSave:disabled { opacity: .5; cursor: not-allowed; }

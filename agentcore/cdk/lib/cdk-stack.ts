@@ -356,11 +356,20 @@ export class AgentCoreStack extends Stack {
       description: 'Cancels an active reservation',
     });
 
+    const updateFn = new lambda.Function(this, 'ReservationUpdateFn', {
+      ...lambdaDefaults,
+      functionName: `${spec.name}-reservation-update`,
+      code: lambda.Code.fromAsset(lambdaDir),
+      handler: 'update.handler',
+      description: 'Updates editable fields of an active reservation',
+    });
+
     // --- Grant DynamoDB permissions ---
     reservationsTable.grantReadWriteData(createFn);
     reservationsTable.grantReadData(getFn);
     reservationsTable.grantReadData(listFn);
     reservationsTable.grantReadWriteData(cancelFn);
+    reservationsTable.grantReadWriteData(updateFn);
 
     // --- HTTP API Gateway ---
     const httpApi = new apigwv2.HttpApi(this, 'ReservationsApi', {
@@ -406,6 +415,13 @@ export class AgentCoreStack extends Stack {
       integration: new apigwv2_integrations.HttpLambdaIntegration('CancelIntegration', cancelFn),
     });
 
+    // PATCH /reservations/{reservationId}  (update editable fields)
+    httpApi.addRoutes({
+      path: '/reservations/{reservationId}',
+      methods: [apigwv2.HttpMethod.PATCH],
+      integration: new apigwv2_integrations.HttpLambdaIntegration('UpdateIntegration', updateFn),
+    });
+
     // --- Grant ReservationsAgent runtime role access to DynamoDB ---
     // The ReservationsAgent runtime role is managed by AgentCoreApplication.
     // We grant it after the application is created by looking it up by name.
@@ -416,6 +432,60 @@ export class AgentCoreStack extends Stack {
       reservationsEnv.runtime.addEnvironmentVariable('RESERVATIONS_API_URL', httpApi.apiEndpoint);
       reservationsEnv.runtime.addEnvironmentVariable('RESERVATIONS_TABLE', reservationsTable.tableName);
     }
+
+    // =========================================================================
+    // ORCHESTRATOR PROXY
+    // Lambda que firma SigV4 server-side y reenvía al OrchestratorAgent.
+    // El frontend llama a este endpoint sin credenciales AWS propias.
+    // =========================================================================
+
+    const orchestratorRuntimeUrl =
+      'https://bedrock-agentcore.us-east-2.amazonaws.com/runtimes/' +
+      'arn%3Aaws%3Abedrock-agentcore%3Aus-east-2%3A700002441872%3Aruntime%2F' +
+      'TripPlannerA2A_OrchestratorAgent-DZAPzV4CU4/invocations/';
+
+    const proxyDir = path.resolve(__dirname, '..', '..', '..', 'lambdas', 'proxy');
+
+    const proxyFn = new lambda.Function(this, 'OrchestratorProxyFn', {
+      ...lambdaDefaults,
+      environment: {
+        ORCHESTRATOR_URL: orchestratorRuntimeUrl,
+        AWS_REGION_NAME:  this.region,
+      },
+      functionName: `${spec.name}-orchestrator-proxy`,
+      code: lambda.Code.fromAsset(proxyDir),
+      handler: 'invoke.streaming_handler',
+      timeout: Duration.seconds(300),
+      memorySize: 256,
+      description: 'Proxy SigV4 con streaming: reenvía prompts al OrchestratorAgent via Function URL',
+    });
+
+    // El proxy necesita invocar el runtime del OrchestratorAgent
+    proxyFn.addToRolePolicy(new iam.PolicyStatement({
+      actions: ['bedrock-agentcore:InvokeAgentRuntime'],
+      resources: [
+        `arn:aws:bedrock-agentcore:${this.region}:${this.account}:runtime/TripPlannerA2A_OrchestratorAgent-DZAPzV4CU4`,
+      ],
+    }));
+
+    // Function URL con streaming — reemplaza la ruta /invoke del API Gateway.
+    // AuthType NONE: el endpoint es público pero el rol solo permite invocar el Orchestrator.
+    // InvokeMode RESPONSE_STREAM: transmite la respuesta chunk a chunk al frontend.
+    const proxyFnUrl = proxyFn.addFunctionUrl({
+      authType: lambda.FunctionUrlAuthType.NONE,
+      invokeMode: lambda.InvokeMode.RESPONSE_STREAM,
+      cors: {
+        allowedOrigins: ['*'],
+        allowedHeaders: ['Content-Type'],
+        allowedMethods: [lambda.HttpMethod.ALL],
+      },
+    });
+
+    new CfnOutput(this, 'OrchestratorProxyUrl', {
+      description: 'Function URL de streaming del proxy SigV4 para el OrchestratorAgent',
+      value: proxyFnUrl.url,
+      exportName: `${spec.name}-OrchestratorProxyUrl`,
+    });
 
     // --- Outputs ---
     new CfnOutput(this, 'ReservationsTableName', {
@@ -437,3 +507,4 @@ export class AgentCoreStack extends Stack {
     });
   }
 }
+

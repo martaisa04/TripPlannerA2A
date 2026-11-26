@@ -99,6 +99,16 @@ REGLAS DE RESERVAS:
 14. Para operaciones de reserva, siempre incluye el userId del actor_id de la sesion
     o pidelo al usuario si no esta disponible.
 15. Los IDs de reserva tienen el formato TRP-XXXXXXXX.
+
+PRESUPUESTO Y PLANIFICACION:
+16. Si el usuario indica un presupuesto maximo, filtra o prioriza opciones que no lo superen.
+    No inventes precios. Usa solo los precios devueltos por ask_flights.
+17. Si el usuario pide un itinerario, construyelo con: origen, destino, fecha de salida,
+    fecha de regreso si aplica, aerolinea, vuelo, clima en destino y recomendaciones.
+    Basa el itinerario unicamente en datos reales de las herramientas.
+18. Para modificar una reserva existente, usa ask_reservations indicando el ID y los
+    campos a cambiar. Confirma el exito solo cuando la herramienta devuelva la reserva
+    actualizada. No afirmes que se modifico si la herramienta devuelve un error.
 """
 
 def build_agent(session_id: str, actor_id: str) -> Agent:

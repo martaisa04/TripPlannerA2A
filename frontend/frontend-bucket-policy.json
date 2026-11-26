@@ -1,0 +1,12 @@
+{
+    "Version":  "2012-10-17",
+    "Statement":  [
+                      {
+                          "Effect":  "Allow",
+                          "Sid":  "PublicReadForWebsite",
+                          "Principal":  "*",
+                          "Resource":  "arn:aws:s3:::tripplanner-frontend-700002441872-20261125211703/*",
+                          "Action":  "s3:GetObject"
+                      }
+                  ]
+}
